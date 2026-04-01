@@ -1,4 +1,4 @@
-# 🪡 NoteStitch
+# <img src="NoteStitch/Assets/notes.png" width="32" height="32" valign="middle"> NoteStitch
 
 > Stitch multiple Notepad windows into one document — instantly.
 
