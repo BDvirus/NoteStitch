@@ -53,9 +53,15 @@ jobs:
         with:
           name: NoteStitch
           path: publish
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: publish/NoteStitch.exe
-          generate_release_notes: true
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            publish/NoteStitch.exe \
+            --repo "${{ github.repository }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
