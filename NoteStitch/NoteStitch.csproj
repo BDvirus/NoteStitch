@@ -17,5 +17,6 @@
     <AssemblyName>NoteStitch</AssemblyName>
     <RootNamespace>NoteStitch</RootNamespace>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 </Project>

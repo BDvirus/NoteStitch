@@ -16,6 +16,10 @@ public class MainForm : Form
     private List<NotepadDoc> _docs = new();
     private List<CheckBox> _checkBoxes = new();
     private bool _allSelected = true;
+    private Button _autoMergeButton = null!;
+    private AppSettings _settings = AppSettings.Load();
+    private NotifyIcon _trayIcon = null!;
+    private bool _trayHintShown = false;
 
     // ── WinEvent hook ─────────────────────────────────────────────────────────
     private const uint EVENT_OBJECT_DESTROY     = 0x8001;
@@ -55,6 +59,7 @@ public class MainForm : Form
     {
         InitializeComponent();
         Icon = IconHelper.Load();
+        InstallTrayIcon();
         RefreshNotepads();
         InstallHook();
     }
@@ -118,17 +123,26 @@ public class MainForm : Form
             WrapContents = false
         };
 
-        _toggleAllButton = new Button { Text = "Deselect All", Width = 90 };
-        _mergeButton = new Button { Text = "Merge  ▶", Width = 90, Enabled = false };
+        _toggleAllButton  = new Button { Text = "Deselect All", Width = 90 };
+        _mergeButton      = new Button { Text = "Merge  ▶", Width = 90, Enabled = false };
+        _autoMergeButton  = new Button { Text = "⚡ Auto Save", Width = 95, Enabled = false };
         var shortcutButton = new Button { Text = "⌨ Shortcut…", Width = 100 };
+        var settingsButton = new Button { Text = "⚙", Width = 32 };
+        var aboutButton    = new Button { Text = "ℹ", Width = 32 };
 
-        _toggleAllButton.Click += OnToggleAll;
-        _mergeButton.Click += OnMergeClicked;
-        shortcutButton.Click += OnSetupShortcutClicked;
+        _toggleAllButton.Click  += OnToggleAll;
+        _mergeButton.Click      += OnMergeClicked;
+        _autoMergeButton.Click  += OnAutoMergeClicked;
+        shortcutButton.Click    += OnSetupShortcutClicked;
+        settingsButton.Click    += OnSettingsClicked;
+        aboutButton.Click       += (_, _) => new AboutForm().ShowDialog(this);
 
         buttonPanel.Controls.Add(_toggleAllButton);
         buttonPanel.Controls.Add(_mergeButton);
+        buttonPanel.Controls.Add(_autoMergeButton);
         buttonPanel.Controls.Add(shortcutButton);
+        buttonPanel.Controls.Add(settingsButton);
+        buttonPanel.Controls.Add(aboutButton);
 
         // Layout (add in reverse dock order)
         Controls.Add(_scrollPanel);
@@ -137,6 +151,70 @@ public class MainForm : Form
         Controls.Add(buttonPanel);
 
         Padding = new Padding(8, 0, 8, 0);
+    }
+
+    // ── Tray ──────────────────────────────────────────────────────────────────
+
+    private void InstallTrayIcon()
+    {
+        var menu = new ContextMenuStrip();
+        menu.Items.Add("Open NoteStitch",  null, (_, _) => ShowFromTray());
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Merge  ▶",         null, (_, _) => { ShowFromTray(); OnMergeClicked(null, EventArgs.Empty); });
+        menu.Items.Add("⚡ Auto Save",      null, (_, _) => { ShowFromTray(); OnAutoMergeClicked(null, EventArgs.Empty); });
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("⚙ Settings",       null, (_, _) => { ShowFromTray(); OnSettingsClicked(null, EventArgs.Empty); });
+        menu.Items.Add("⌨ Shortcut…",      null, (_, _) => { ShowFromTray(); OnSetupShortcutClicked(null, EventArgs.Empty); });
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("About",                null, (_, _) => new AboutForm().ShowDialog(this));
+        menu.Items.Add("Check for Updates…",   null, async (_, _) => await CheckForUpdatesManualAsync());
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Exit",             null, (_, _) => { _trayIcon.Visible = false; Application.Exit(); });
+
+        _trayIcon = new NotifyIcon
+        {
+            Icon = Icon,
+            Text = "NoteStitch",
+            ContextMenuStrip = menu,
+            Visible = true
+        };
+
+        _trayIcon.DoubleClick += (_, _) => ShowFromTray();
+    }
+
+    private void ShowFromTray()
+    {
+        Show();
+        WindowState = FormWindowState.Normal;
+        Activate();
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        if (WindowState == FormWindowState.Minimized)
+            MinimizeToTray();
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        if (e.CloseReason == CloseReason.UserClosing)
+        {
+            e.Cancel = true;
+            MinimizeToTray();
+            return;
+        }
+        base.OnFormClosing(e);
+    }
+
+    private void MinimizeToTray()
+    {
+        Hide();
+        if (!_trayHintShown)
+        {
+            _trayHintShown = true;
+            _trayIcon.ShowBalloonTip(2500, "NoteStitch", "NoteStitch is minimized to the system tray.\nDouble-click the icon to reopen.", ToolTipIcon.Info);
+        }
     }
 
     // ── WinEvent ──────────────────────────────────────────────────────────────
@@ -187,12 +265,33 @@ public class MainForm : Form
         _debounce.Start();
     }
 
+    private async Task CheckForUpdatesManualAsync()
+    {
+        try
+        {
+            var release = await UpdateChecker.GetLatestReleaseAsync();
+            if (release is null)
+            {
+                MessageBox.Show($"You are up to date (v{UpdateChecker.CurrentVersion.ToString(3)}).",
+                    "No Updates", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            await Updater.PromptAndUpdateAsync(release, this);
+        }
+        catch
+        {
+            MessageBox.Show("Could not reach GitHub. Check your internet connection.",
+                "Update Check Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         UnhookWinEvent(_hookShowDestroy);
         UnhookWinEvent(_hookNameChange);
         UnhookWinEvent(_hookValueChange);
         _debounce.Dispose();
+        _trayIcon.Dispose();
         base.OnFormClosed(e);
     }
 
@@ -279,7 +378,9 @@ public class MainForm : Form
 
     private void UpdateMergeButton()
     {
-        _mergeButton.Enabled = _checkBoxes.Any(cb => cb.Checked);
+        bool any = _checkBoxes.Any(cb => cb.Checked);
+        _mergeButton.Enabled     = any;
+        _autoMergeButton.Enabled = any && !string.IsNullOrEmpty(_settings.AutoSaveFolder);
     }
 
     private void OnToggleAll(object? sender, EventArgs e)
@@ -366,6 +467,112 @@ public class MainForm : Form
         catch (Exception ex)
         {
             MessageBox.Show($"Failed to create shortcut:\n{ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void OnSettingsClicked(object? sender, EventArgs e)
+    {
+        using var dlg = new Form
+        {
+            Text = "Settings",
+            Size = new Size(460, 140),
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterParent,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            Font = new Font("Segoe UI", 9f)
+        };
+
+        var lbl = new Label
+        {
+            Text = "Auto-save folder:",
+            Left = 12, Top = 22, Width = 110, Height = 24,
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        var folderBox = new TextBox
+        {
+            Left = 125, Top = 20, Width = 220, Height = 24,
+            Text = _settings.AutoSaveFolder
+        };
+
+        var browseBtn = new Button { Text = "Browse…", Left = 352, Top = 19, Width = 76 };
+        browseBtn.Click += (_, _) =>
+        {
+            using var fbd = new FolderBrowserDialog
+            {
+                Description = "Select auto-save folder",
+                SelectedPath = folderBox.Text
+            };
+            if (fbd.ShowDialog() == DialogResult.OK)
+                folderBox.Text = fbd.SelectedPath;
+        };
+
+        var ok     = new Button { Text = "Save", Left = 260, Top = 62, Width = 80, DialogResult = DialogResult.OK };
+        var cancel = new Button { Text = "Cancel", Left = 348, Top = 62, Width = 80, DialogResult = DialogResult.Cancel };
+        dlg.AcceptButton = ok;
+        dlg.CancelButton = cancel;
+
+        dlg.Controls.AddRange([lbl, folderBox, browseBtn, ok, cancel]);
+
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+        _settings.AutoSaveFolder = folderBox.Text.Trim();
+        _settings.Save();
+        UpdateMergeButton();
+    }
+
+    private void OnAutoMergeClicked(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(_settings.AutoSaveFolder))
+        {
+            MessageBox.Show("No auto-save folder configured.\nClick ⚙ to set one.",
+                "Not configured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var checkedFilenames = _docs
+            .Where((doc, i) => i < _checkBoxes.Count && _checkBoxes[i].Checked)
+            .Select(doc => doc.Filename)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        RefreshNotepads();
+
+        for (int i = 0; i < _docs.Count && i < _checkBoxes.Count; i++)
+            _checkBoxes[i].Checked = checkedFilenames.Contains(_docs[i].Filename);
+
+        var selected = _docs
+            .Where((doc, i) => i < _checkBoxes.Count && _checkBoxes[i].Checked)
+            .ToList();
+
+        if (selected.Count == 0) return;
+
+        try
+        {
+            Directory.CreateDirectory(_settings.AutoSaveFolder);
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string filePath = Path.Combine(_settings.AutoSaveFolder, $"merged_notepads_{timestamp}.txt");
+
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < selected.Count; i++)
+            {
+                sb.AppendLine($"=== {selected[i].Filename} ===");
+                sb.AppendLine();
+                sb.AppendLine(string.IsNullOrEmpty(selected[i].Text) ? "(empty document)" : selected[i].Text);
+                if (i < selected.Count - 1) sb.AppendLine();
+            }
+
+            File.WriteAllText(filePath, sb.ToString(), System.Text.Encoding.UTF8);
+            NotepadReader.CloseNotepadWindows(selected);
+            RefreshNotepads();
+
+            MessageBox.Show($"Saved to:\n{filePath}\n\nAll Notepad windows have been closed.",
+                "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to save:\n{ex.Message}", "Error",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
