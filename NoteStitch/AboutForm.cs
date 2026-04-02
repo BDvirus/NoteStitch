@@ -13,7 +13,7 @@ internal class AboutForm : Form
     private void InitializeComponent()
     {
         Text = "About the Author";
-        Size = new Size(460, 380);
+        Size = new Size(460, 480);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         StartPosition = FormStartPosition.CenterParent;
         MaximizeBox = false;
@@ -62,7 +62,7 @@ internal class AboutForm : Form
         var aboutBox = new RichTextBox
         {
             Left = 24, Top = 116,
-            Width = 396, Height = 170,
+            Width = 396, Height = 200,
             BorderStyle = BorderStyle.None,
             BackColor = Color.White,
             ReadOnly = true,
@@ -118,7 +118,7 @@ internal class AboutForm : Form
             Text = "Close",
             Width = 80,
             Left = 340,
-            Top = 308,
+            Top = 358,
             DialogResult = DialogResult.OK
         };
         AcceptButton = closeBtn;

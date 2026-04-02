@@ -67,7 +67,7 @@ public class MainForm : Form
     private void InitializeComponent()
     {
         Text = "NoteStitch";
-        Size = new Size(480, 420);
+        Size = new Size(520, 420);
         MinimumSize = new Size(380, 300);
         StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 9f);
