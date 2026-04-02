@@ -126,7 +126,7 @@ public class MainForm : Form
         };
 
         _toggleAllButton  = new Button { Text = "Deselect All", Width = 90 };
-        _mergeButton      = new Button { Text = "Merge  ▶", Width = 90, Enabled = false };
+        _mergeButton      = new Button { Text = "🔀 Merge", Width = 90, Enabled = false };
         _autoMergeButton  = new Button { Text = "⚡ Auto Save", Width = 95, Enabled = false };
         var shortcutButton = new Button { Text = "⌨ Shortcut…", Width = 100 };
         var settingsButton = new Button { Text = "⚙", Width = 32 };
@@ -162,7 +162,7 @@ public class MainForm : Form
         var menu = new ContextMenuStrip();
         menu.Items.Add("Open NoteStitch",  null, (_, _) => ShowFromTray());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Merge  ▶",         null, (_, _) => { ShowFromTray(); OnMergeClicked(null, EventArgs.Empty); });
+        menu.Items.Add("🔀 Merge",         null, (_, _) => { ShowFromTray(); OnMergeClicked(null, EventArgs.Empty); });
         menu.Items.Add("⚡ Auto Save",      null, (_, _) => { ShowFromTray(); OnAutoMergeClicked(null, EventArgs.Empty); });
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("⚙ Settings",       null, (_, _) => { ShowFromTray(); OnSettingsClicked(null, EventArgs.Empty); });
