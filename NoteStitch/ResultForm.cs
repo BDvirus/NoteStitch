@@ -92,8 +92,8 @@ public class ResultForm : Form
     {
         _richTextBox.Clear();
 
-        var normalFont = new Font("Consolas", 9.5f);
-        var boldFont = new Font("Consolas", 9.5f, FontStyle.Bold);
+        using var normalFont = new Font("Consolas", 9.5f);
+        using var boldFont   = new Font("Consolas", 9.5f, FontStyle.Bold);
         var sb = new StringBuilder();
 
         for (int i = 0; i < _docs.Count; i++)

@@ -20,17 +20,26 @@ internal class AppSettings
                 return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NoteStitch] Failed to load settings: {ex.Message}");
+        }
         return new AppSettings();
     }
 
-    public void Save()
+    /// <returns>null on success, error message on failure.</returns>
+    public string? Save()
     {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
             File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            return null;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[NoteStitch] Failed to save settings: {ex.Message}");
+            return ex.Message;
+        }
     }
 }

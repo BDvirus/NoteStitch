@@ -112,6 +112,7 @@ public class MainForm : Form
             Margin = new Padding(8)
         };
         _scrollPanel.Controls.Add(_checklistPanel);
+        _scrollPanel.Resize += (_, _) => ResizeRows();
 
         // Buttons
         var buttonPanel = new FlowLayoutPanel
@@ -135,7 +136,7 @@ public class MainForm : Form
         _autoMergeButton.Click  += OnAutoMergeClicked;
         shortcutButton.Click    += OnSetupShortcutClicked;
         settingsButton.Click    += OnSettingsClicked;
-        aboutButton.Click       += (_, _) => new AboutForm().ShowDialog(this);
+        aboutButton.Click       += (_, _) => { using var f = new AboutForm(); f.ShowDialog(this); };
 
         buttonPanel.Controls.Add(_toggleAllButton);
         buttonPanel.Controls.Add(_mergeButton);
@@ -166,7 +167,7 @@ public class MainForm : Form
         menu.Items.Add("⚙ Settings",       null, (_, _) => { ShowFromTray(); OnSettingsClicked(null, EventArgs.Empty); });
         menu.Items.Add("⌨ Shortcut…",      null, (_, _) => { ShowFromTray(); OnSetupShortcutClicked(null, EventArgs.Empty); });
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("About",                null, (_, _) => new AboutForm().ShowDialog(this));
+        menu.Items.Add("About",                null, (_, _) => { using var f = new AboutForm(); f.ShowDialog(this); });
         menu.Items.Add("Check for Updates…",   null, async (_, _) => await CheckForUpdatesManualAsync());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit",             null, (_, _) => { _trayIcon.Visible = false; Application.Exit(); });
@@ -261,8 +262,7 @@ public class MainForm : Form
         GetClassName(root, cls, cls.Capacity);
         if (cls.ToString() != "Notepad") return;
 
-        _debounce.Stop();
-        _debounce.Start();
+        BeginInvoke(() => { _debounce.Stop(); _debounce.Start(); });
     }
 
     private async Task CheckForUpdatesManualAsync()
@@ -309,9 +309,13 @@ public class MainForm : Form
         {
             _infoLabel.Text = "No Notepad windows found. Open Notepad to begin.";
             _infoLabel.ForeColor = Color.OrangeRed;
-            _mergeButton.Enabled = false;
+            _mergeButton.Enabled     = false;
+            _autoMergeButton.Enabled = false;
+            _toggleAllButton.Enabled = false;
             return;
         }
+
+        _toggleAllButton.Enabled = true;
 
         _infoLabel.Text = $"{_docs.Count} Notepad window{(_docs.Count == 1 ? "" : "s")} found";
         _infoLabel.ForeColor = Color.Gray;
@@ -355,9 +359,6 @@ public class MainForm : Form
             _checkBoxes.Add(cb);
             _checklistPanel.Controls.Add(row);
         }
-
-        // Resize rows when panel resizes
-        _scrollPanel.Resize += (_, _) => ResizeRows();
 
         UpdateMergeButton();
     }
@@ -519,7 +520,10 @@ public class MainForm : Form
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
         _settings.AutoSaveFolder = folderBox.Text.Trim();
-        _settings.Save();
+        var err = _settings.Save();
+        if (err is not null)
+            MessageBox.Show($"Settings could not be saved:\n{err}", "Warning",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
         UpdateMergeButton();
     }
 
@@ -597,7 +601,7 @@ public class MainForm : Form
 
         if (selected.Count == 0) return;
 
-        var resultForm = new ResultForm(selected);
+        using var resultForm = new ResultForm(selected);
         resultForm.ShowDialog(this);
     }
 }

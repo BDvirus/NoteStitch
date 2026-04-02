@@ -19,9 +19,17 @@ internal static class Updater
         if (result != DialogResult.Yes) return;
 
         if (release.HasDirectDownload)
+        {
             await DownloadAndReplaceAsync(release.DownloadUrl, owner);
+        }
         else
+        {
+            if (!release.HasAsset)
+                MessageBox.Show(
+                    $"No downloadable asset was found for {release.TagName}.\nOpening the releases page instead.",
+                    "No Asset Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             Process.Start(new ProcessStartInfo(release.ReleasePage) { UseShellExecute = true });
+        }
     }
 
     private static async Task DownloadAndReplaceAsync(string downloadUrl, IWin32Window owner)

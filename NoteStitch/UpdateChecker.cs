@@ -37,7 +37,8 @@ internal static class UpdateChecker
             Version     = latestVersion,
             TagName     = release.TagName,
             DownloadUrl = asset?.BrowserDownloadUrl ?? string.Empty,
-            ReleasePage = ReleasePage
+            ReleasePage = ReleasePage,
+            HasAsset    = asset is not null
         };
     }
 
@@ -63,5 +64,6 @@ internal class ReleaseInfo
     public string  DownloadUrl { get; set; } = "";
     public string  ReleasePage { get; set; } = "";
 
+    public bool HasAsset        { get; set; } = true;
     public bool HasDirectDownload => !string.IsNullOrEmpty(DownloadUrl);
 }

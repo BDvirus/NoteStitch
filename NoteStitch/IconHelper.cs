@@ -27,8 +27,16 @@ internal static class IconHelper
         using var stream = OpenIco();
         if (stream is null) return string.Empty;
 
-        try { using var fs = File.Create(icoPath); stream.CopyTo(fs); }
-        catch { return string.Empty; }
+        try
+        {
+            using var fs = File.Create(icoPath);
+            stream.CopyTo(fs);
+        }
+        catch
+        {
+            try { File.Delete(icoPath); } catch { }
+            return string.Empty;
+        }
 
         return icoPath;
     }
