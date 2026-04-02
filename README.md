@@ -9,6 +9,12 @@
 
 ---
 
+## Screenshot
+
+![NoteStitch](docs/screenshot.png)
+
+---
+
 ## What is it?
 
 You have six Notepad windows open. Meeting notes, a code snippet, a half-written email, some random thoughts. You need it all in one place — **right now**.

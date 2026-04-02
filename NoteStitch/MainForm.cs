@@ -66,7 +66,7 @@ public class MainForm : Form
 
     private void InitializeComponent()
     {
-        Text = "NoteStitch";
+        Text = $"NoteStitch v{UpdateChecker.CurrentVersion.ToString(3)}";
         Size = new Size(520, 420);
         MinimumSize = new Size(380, 300);
         StartPosition = FormStartPosition.CenterScreen;
