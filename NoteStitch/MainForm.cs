@@ -62,6 +62,7 @@ public class MainForm : Form
         InstallTrayIcon();
         RefreshNotepads();
         InstallHook();
+        EnsureStartMenuEntry();
     }
 
     private void InitializeComponent()
@@ -166,6 +167,7 @@ public class MainForm : Form
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("⚙ Settings",       null, (_, _) => { ShowFromTray(); OnSettingsClicked(null, EventArgs.Empty); });
         menu.Items.Add("⌨ Shortcut…",      null, (_, _) => { ShowFromTray(); OnSetupShortcutClicked(null, EventArgs.Empty); });
+        menu.Items.Add("📌 Add to Start Menu", null, (_, _) => AddToStartMenu());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("About",                null, (_, _) => { using var f = new AboutForm(); f.ShowDialog(this); });
         menu.Items.Add("Check for Updates…",   null, async (_, _) => await CheckForUpdatesManualAsync());
@@ -438,29 +440,58 @@ public class MainForm : Form
         CreateStartMenuShortcut(key);
     }
 
-    private static void CreateStartMenuShortcut(string key)
+    // hotkey: e.g. "Ctrl+Alt+N", or null for no hotkey
+    private static void WriteLnk(string lnkPath, string? hotkey = null)
     {
-        string exePath = Application.ExecutablePath;
-        string lnkPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Programs),
-            "NoteStitch.lnk");
+        Type shellType = Type.GetTypeFromProgID("WScript.Shell")
+            ?? throw new InvalidOperationException("WScript.Shell not available.");
+        dynamic shell    = Activator.CreateInstance(shellType)!;
+        dynamic shortcut = shell.CreateShortcut(lnkPath);
+        shortcut.TargetPath  = Application.ExecutablePath;
+        shortcut.Description = "NoteStitch";
+        if (hotkey is not null) shortcut.HotKey = hotkey;
 
+        string icoPath = IconHelper.EnsureIcoFile();
+        if (!string.IsNullOrEmpty(icoPath))
+            shortcut.IconLocation = $"{icoPath},0";
+
+        shortcut.Save();
+    }
+
+    private static string StartMenuLnkPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+        "NoteStitch.lnk");
+
+    private static void EnsureStartMenuEntry()
+    {
         try
         {
-            Type shellType = Type.GetTypeFromProgID("WScript.Shell")
-                ?? throw new InvalidOperationException("WScript.Shell not available.");
-            dynamic shell = Activator.CreateInstance(shellType)!;
-            dynamic shortcut = shell.CreateShortcut(lnkPath);
-            shortcut.TargetPath = exePath;
-            shortcut.HotKey = $"Ctrl+Alt+{key}";
-            shortcut.Description = "NoteStitch";
+            if (!File.Exists(StartMenuLnkPath))
+                WriteLnk(StartMenuLnkPath);
+        }
+        catch { }
+    }
 
-            string icoPath = IconHelper.EnsureIcoFile();
-            if (!string.IsNullOrEmpty(icoPath))
-                shortcut.IconLocation = $"{icoPath},0";
+    private static void AddToStartMenu()
+    {
+        try
+        {
+            WriteLnk(StartMenuLnkPath);
+            MessageBox.Show("NoteStitch has been added to the Start Menu.",
+                "Start Menu", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to add to Start Menu:\n{ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
 
-            shortcut.Save();
-
+    private static void CreateStartMenuShortcut(string key)
+    {
+        try
+        {
+            WriteLnk(StartMenuLnkPath, $"Ctrl+Alt+{key}");
             MessageBox.Show(
                 $"Shortcut created.\n\nHotkey:  Ctrl + Alt + {key}\n\nNote: Log off and back on (or restart) for Windows to register the hotkey.",
                 "Shortcut Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
