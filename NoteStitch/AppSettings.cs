@@ -8,7 +8,9 @@ internal class AppSettings
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "NoteStitch", "settings.json");
 
-    public string AutoSaveFolder { get; set; } = string.Empty;
+    public string AutoSaveFolder        { get; set; } = string.Empty;
+    public bool   IncludeSavedFiles     { get; set; } = false;
+    public bool   IncludeMergedFiles    { get; set; } = false;
 
     public static AppSettings Load()
     {

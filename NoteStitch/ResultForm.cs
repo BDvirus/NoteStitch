@@ -162,7 +162,7 @@ public class ResultForm : Form
             return;
 
         File.WriteAllText(dlg.FileName, _mergedText, Encoding.UTF8);
-        NotepadReader.CloseNotepadWindows(_docs);
+        NotepadReader.CloseNotepadWindows(_docs, _docs);
         MessageBox.Show($"Saved to:\n{dlg.FileName}\n\nAll Notepad windows have been closed.", "Done",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
         Close();

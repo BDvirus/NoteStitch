@@ -5,9 +5,10 @@ namespace NoteStitch;
 
 public class NotepadDoc
 {
-    public IntPtr Hwnd { get; set; }
-    public string Filename { get; set; } = string.Empty;
-    public string Text { get; set; } = string.Empty;
+    public IntPtr Hwnd      { get; set; }
+    public int    ProcessId { get; set; }
+    public string Filename  { get; set; } = string.Empty;
+    public string Text      { get; set; } = string.Empty;
     public int CharCount => Text.Length - Text.Count(c => c == '\r');
 }
 
@@ -41,6 +42,18 @@ public static class NotepadReader
 
     public static List<NotepadDoc> GetNotepadWindows()
     {
+        // Windows 11 Store Notepad: read all tabs from state files (inactive tabs included)
+        if (Win11NotepadReader.IsAvailable)
+        {
+            var win11Docs = Win11NotepadReader.GetAllTabs();
+            if (win11Docs.Count > 0)
+            {
+                DeduplicateFilenames(win11Docs);
+                return win11Docs;
+            }
+        }
+
+        // Fallback: classic Win32 approach (reads active tab only)
         var docs = new List<NotepadDoc>();
 
         EnumWindows((hwnd, _) =>
@@ -55,11 +68,13 @@ public static class NotepadReader
                 string filename = ParseTitle(titleBuf.ToString());
                 string text = ReadEditText(hwnd);
 
+                GetWindowThreadProcessId(hwnd, out uint pid);
                 docs.Add(new NotepadDoc
                 {
-                    Hwnd = hwnd,
-                    Filename = filename,
-                    Text = text
+                    Hwnd      = hwnd,
+                    ProcessId = (int)pid,
+                    Filename  = filename,
+                    Text      = text
                 });
             }
 
@@ -70,6 +85,10 @@ public static class NotepadReader
         return docs;
     }
 
+    // Classic Notepad uses "Edit"; Windows 11 new Notepad uses "RichEditD2DPT"
+    private static readonly HashSet<string> EditClasses =
+        new(StringComparer.OrdinalIgnoreCase) { "Edit", "RichEditD2DPT" };
+
     private static string ReadEditText(IntPtr notepadHwnd)
     {
         IntPtr editHwnd = IntPtr.Zero;
@@ -78,7 +97,7 @@ public static class NotepadReader
         {
             var cls = new StringBuilder(64);
             GetClassName(child, cls, cls.Capacity);
-            if (cls.ToString() == "Edit")
+            if (EditClasses.Contains(cls.ToString()))
             {
                 editHwnd = child;
                 return false; // stop enumeration
@@ -112,17 +131,50 @@ public static class NotepadReader
         return string.IsNullOrWhiteSpace(name) ? "Untitled" : name;
     }
 
-    public static void CloseNotepadWindows(IEnumerable<NotepadDoc> docs)
+    /// <param name="selectedDocs">Docs the user wants to close.</param>
+    /// <param name="allDocs">All currently known docs — used to decide whether it is safe
+    /// to kill a Win11 Notepad process (which hosts all tabs in one process).</param>
+    public static void CloseNotepadWindows(
+        IEnumerable<NotepadDoc> selectedDocs,
+        IEnumerable<NotepadDoc> allDocs)
     {
-        foreach (var doc in docs)
+        var selected = selectedDocs.ToList();
+        var all      = allDocs.ToList();
+
+        // For Win11 tabstate docs (Hwnd == Zero) we must only kill the process when ALL
+        // tabs belonging to that PID are selected — otherwise we'd close unselected tabs.
+        // Bug #6 fix: count total vs selected per PID.
+        var totalPerPid    = all.Where(d => d.Hwnd == IntPtr.Zero && d.ProcessId > 0)
+                                .GroupBy(d => d.ProcessId)
+                                .ToDictionary(g => g.Key, g => g.Count());
+        var selectedPerPid = selected.Where(d => d.Hwnd == IntPtr.Zero && d.ProcessId > 0)
+                                     .GroupBy(d => d.ProcessId)
+                                     .ToDictionary(g => g.Key, g => g.Count());
+
+        var pids = new HashSet<int>();
+        foreach (var doc in selected)
         {
-            uint threadId = GetWindowThreadProcessId(doc.Hwnd, out uint pid);
-            if (threadId == 0 || pid == 0) continue;
-            try
+            if (doc.Hwnd != IntPtr.Zero)
             {
-                var process = System.Diagnostics.Process.GetProcessById((int)pid);
-                process.Kill();
+                // Classic Win32: each window is independent — always safe to kill
+                GetWindowThreadProcessId(doc.Hwnd, out uint pid);
+                if (pid > 0) pids.Add((int)pid);
             }
+            else if (doc.ProcessId > 0)
+            {
+                // Win11: only kill when every tab of this process is selected
+                if (totalPerPid.TryGetValue(doc.ProcessId, out int total) &&
+                    selectedPerPid.TryGetValue(doc.ProcessId, out int sel) &&
+                    sel >= total)
+                {
+                    pids.Add(doc.ProcessId);
+                }
+            }
+        }
+
+        foreach (int pid in pids)
+        {
+            try { System.Diagnostics.Process.GetProcessById(pid).Kill(); }
             catch { /* process may have already exited */ }
         }
     }

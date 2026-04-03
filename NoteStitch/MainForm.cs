@@ -53,6 +53,7 @@ public class MainForm : Form
     private IntPtr _hookNameChange   = IntPtr.Zero;
     private IntPtr _hookValueChange  = IntPtr.Zero;
     private System.Windows.Forms.Timer _debounce = null!;
+    private FileSystemWatcher? _tabStateWatcher;      // Bug #9: Win11 tab change detection
     // ─────────────────────────────────────────────────────────────────────────
 
     public MainForm()
@@ -244,6 +245,22 @@ public class MainForm : Form
             EVENT_OBJECT_VALUECHANGE, EVENT_OBJECT_VALUECHANGE,
             IntPtr.Zero, _winEventProc, 0, 0,
             WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+
+        // Bug #9 fix: Win11 Store Notepad edits update tabstate files — watch for those changes
+        if (Directory.Exists(Win11NotepadReader.TabStateFolder))
+        {
+            _tabStateWatcher = new FileSystemWatcher(Win11NotepadReader.TabStateFolder, "*.bin")
+            {
+                NotifyFilter      = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+                EnableRaisingEvents = true,
+                IncludeSubdirectories = false
+            };
+            void onTabStateChanged(object _, FileSystemEventArgs __) =>
+                BeginInvoke(() => { _debounce.Stop(); _debounce.Start(); });
+            _tabStateWatcher.Changed += onTabStateChanged;
+            _tabStateWatcher.Created += onTabStateChanged;
+            _tabStateWatcher.Deleted += onTabStateChanged;
+        }
     }
 
     private void OnWinEvent(
@@ -292,6 +309,7 @@ public class MainForm : Form
         UnhookWinEvent(_hookShowDestroy);
         UnhookWinEvent(_hookNameChange);
         UnhookWinEvent(_hookValueChange);
+        _tabStateWatcher?.Dispose();
         _debounce.Dispose();
         _trayIcon.Dispose();
         base.OnFormClosed(e);
@@ -301,7 +319,18 @@ public class MainForm : Form
 
     private void RefreshNotepads()
     {
-        _docs = NotepadReader.GetNotepadWindows();
+        var all = NotepadReader.GetNotepadWindows();
+
+        // Filter: exclude tabs that are saved to a named file on disk
+        if (!_settings.IncludeSavedFiles)
+            all = all.Where(d => d.Filename == "Untitled" ||
+                                 d.Filename.StartsWith("Untitled (", StringComparison.Ordinal)).ToList();
+
+        // Filter: exclude previously merged files (e.g. merged_notepads_20240101_120000.txt)
+        if (!_settings.IncludeMergedFiles)
+            all = all.Where(d => !d.Filename.StartsWith("merged_notepads_", StringComparison.OrdinalIgnoreCase)).ToList();
+
+        _docs = all;
         _checkBoxes.Clear();
         _checklistPanel.Controls.Clear();
         _allSelected = true;
@@ -508,7 +537,7 @@ public class MainForm : Form
         using var dlg = new Form
         {
             Text = "Settings",
-            Size = new Size(460, 140),
+            Size = new Size(460, 210),
             FormBorderStyle = FormBorderStyle.FixedDialog,
             StartPosition = FormStartPosition.CenterParent,
             MaximizeBox = false,
@@ -541,21 +570,44 @@ public class MainForm : Form
                 folderBox.Text = fbd.SelectedPath;
         };
 
-        var ok     = new Button { Text = "Save", Left = 260, Top = 62, Width = 80, DialogResult = DialogResult.OK };
-        var cancel = new Button { Text = "Cancel", Left = 348, Top = 62, Width = 80, DialogResult = DialogResult.Cancel };
+        var sepLabel = new Label
+        {
+            Text = "Filter:",
+            Left = 12, Top = 60, Width = 40, Height = 20,
+            ForeColor = Color.Gray
+        };
+
+        var cbSaved = new CheckBox
+        {
+            Text    = "Include saved files (tabs linked to a file on disk)",
+            Left    = 12, Top = 82, Width = 420, Height = 22,
+            Checked = _settings.IncludeSavedFiles
+        };
+
+        var cbMerged = new CheckBox
+        {
+            Text    = "Include previously merged files (merged_notepads_…)",
+            Left    = 12, Top = 108, Width = 420, Height = 22,
+            Checked = _settings.IncludeMergedFiles
+        };
+
+        var ok     = new Button { Text = "Save",   Left = 260, Top = 142, Width = 80, DialogResult = DialogResult.OK };
+        var cancel = new Button { Text = "Cancel", Left = 348, Top = 142, Width = 80, DialogResult = DialogResult.Cancel };
         dlg.AcceptButton = ok;
         dlg.CancelButton = cancel;
 
-        dlg.Controls.AddRange([lbl, folderBox, browseBtn, ok, cancel]);
+        dlg.Controls.AddRange([lbl, folderBox, browseBtn, sepLabel, cbSaved, cbMerged, ok, cancel]);
 
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
-        _settings.AutoSaveFolder = folderBox.Text.Trim();
+        _settings.AutoSaveFolder     = folderBox.Text.Trim();
+        _settings.IncludeSavedFiles  = cbSaved.Checked;
+        _settings.IncludeMergedFiles = cbMerged.Checked;
         var err = _settings.Save();
         if (err is not null)
             MessageBox.Show($"Settings could not be saved:\n{err}", "Warning",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        UpdateMergeButton();
+        RefreshNotepads();
     }
 
     private void OnAutoMergeClicked(object? sender, EventArgs e)
@@ -599,10 +651,15 @@ public class MainForm : Form
             }
 
             File.WriteAllText(filePath, sb.ToString(), System.Text.Encoding.UTF8);
-            NotepadReader.CloseNotepadWindows(selected);
+            // Bug #6 fix: pass full doc list so Win11 process is only killed when ALL tabs selected
+            NotepadReader.CloseNotepadWindows(selected, _docs);
             RefreshNotepads();
 
-            MessageBox.Show($"Saved to:\n{filePath}\n\nAll Notepad windows have been closed.",
+            bool allSelected = selected.Count == _docs.Count || _docs.Count == 0;
+            string closedMsg = allSelected
+                ? "All Notepad windows have been closed."
+                : "Note: Notepad was kept open because only some tabs were selected.";
+            MessageBox.Show($"Saved to:\n{filePath}\n\n{closedMsg}",
                 "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
