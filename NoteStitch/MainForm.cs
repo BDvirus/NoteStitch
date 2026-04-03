@@ -48,6 +48,9 @@ public class MainForm : Form
     [DllImport("user32.dll")]
     private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
 
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private WinEventDelegate _winEventProc = null!;   // must stay rooted
     private IntPtr _hookShowDestroy  = IntPtr.Zero;
     private IntPtr _hookNameChange   = IntPtr.Zero;
@@ -186,10 +189,26 @@ public class MainForm : Form
         _trayIcon.DoubleClick += (_, _) => ShowFromTray();
     }
 
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == (int)Program.WM_NOTESTITCH_ACTIVATE)
+        {
+            ShowFromTray();
+            return;
+        }
+        if (m.Msg == (int)Program.WM_NOTESTITCH_AUTOSAVE)
+        {
+            OnAutoMergeClicked(null, EventArgs.Empty);
+            return;
+        }
+        base.WndProc(ref m);
+    }
+
     private void ShowFromTray()
     {
         Show();
         WindowState = FormWindowState.Normal;
+        SetForegroundWindow(Handle);
         Activate();
     }
 
@@ -425,11 +444,10 @@ public class MainForm : Form
 
     private void OnSetupShortcutClicked(object? sender, EventArgs e)
     {
-        // Build a small inline dialog to pick a Ctrl+Alt+? key
         using var dlg = new Form
         {
             Text = "Set Keyboard Shortcut",
-            Size = new Size(340, 160),
+            Size = new Size(340, 210),
             FormBorderStyle = FormBorderStyle.FixedDialog,
             StartPosition = FormStartPosition.CenterParent,
             MaximizeBox = false,
@@ -439,8 +457,8 @@ public class MainForm : Form
 
         var lbl = new Label
         {
-            Text = "Launch with:  Ctrl + Alt +",
-            Left = 16, Top = 20, Width = 170, Height = 24,
+            Text = "Hotkey:  Ctrl + Alt +",
+            Left = 16, Top = 20, Width = 150, Height = 24,
             TextAlign = ContentAlignment.MiddleLeft
         };
 
@@ -450,27 +468,62 @@ public class MainForm : Form
 
         var combo = new ComboBox
         {
-            Left = 190, Top = 18, Width = 60,
+            Left = 168, Top = 18, Width = 60,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
         combo.Items.AddRange(keys);
         combo.SelectedItem = "N";
 
-        var ok = new Button { Text = "Create Shortcut", Left = 60, Top = 68, Width = 120, DialogResult = DialogResult.OK };
-        var cancel = new Button { Text = "Cancel", Left = 190, Top = 68, Width = 70, DialogResult = DialogResult.Cancel };
+        var actionLbl = new Label
+        {
+            Text = "Action:",
+            Left = 16, Top = 56, Width = 60, Height = 22,
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        var rbOpen = new RadioButton
+        {
+            Text    = "Open NoteStitch",
+            Left    = 16, Top = 80, Width = 280, Height = 22,
+            Checked = true
+        };
+
+        var rbAutoSave = new RadioButton
+        {
+            Text  = "⚡ Auto Save & Close all Notepads",
+            Left  = 16, Top = 104, Width = 290, Height = 22,
+            Enabled = !string.IsNullOrEmpty(_settings.AutoSaveFolder)
+        };
+
+        if (!rbAutoSave.Enabled)
+        {
+            var warnLbl = new Label
+            {
+                Text      = "⚠ Configure auto-save folder in Settings first",
+                Left      = 34, Top = 126, Width = 280, Height = 18,
+                ForeColor = Color.OrangeRed,
+                Font      = new Font("Segoe UI", 8f)
+            };
+            dlg.Controls.Add(warnLbl);
+        }
+
+        var ok     = new Button { Text = "Create Shortcut", Left = 60, Top = 152, Width = 120, DialogResult = DialogResult.OK };
+        var cancel = new Button { Text = "Cancel",          Left = 190, Top = 152, Width = 70,  DialogResult = DialogResult.Cancel };
         dlg.AcceptButton = ok;
         dlg.CancelButton = cancel;
 
-        dlg.Controls.AddRange([lbl, combo, ok, cancel]);
+        dlg.Controls.AddRange([lbl, combo, actionLbl, rbOpen, rbAutoSave, ok, cancel]);
 
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
-        string key = combo.SelectedItem?.ToString() ?? "N";
-        CreateStartMenuShortcut(key);
+        string key  = combo.SelectedItem?.ToString() ?? "N";
+        string? arg = rbAutoSave.Checked ? "/autosave" : null;
+        CreateStartMenuShortcut(key, arg);
     }
 
     // hotkey: e.g. "Ctrl+Alt+N", or null for no hotkey
-    private static void WriteLnk(string lnkPath, string? hotkey = null)
+    // arguments: e.g. "/autosave", or null
+    private static void WriteLnk(string lnkPath, string? hotkey = null, string? arguments = null)
     {
         Type shellType = Type.GetTypeFromProgID("WScript.Shell")
             ?? throw new InvalidOperationException("WScript.Shell not available.");
@@ -478,7 +531,8 @@ public class MainForm : Form
         dynamic shortcut = shell.CreateShortcut(lnkPath);
         shortcut.TargetPath  = Application.ExecutablePath;
         shortcut.Description = "NoteStitch";
-        if (hotkey is not null) shortcut.HotKey = hotkey;
+        if (hotkey    is not null) shortcut.HotKey    = hotkey;
+        if (arguments is not null) shortcut.Arguments = arguments;
 
         string icoPath = IconHelper.EnsureIcoFile();
         if (!string.IsNullOrEmpty(icoPath))
@@ -516,13 +570,14 @@ public class MainForm : Form
         }
     }
 
-    private static void CreateStartMenuShortcut(string key)
+    private static void CreateStartMenuShortcut(string key, string? arguments = null)
     {
         try
         {
-            WriteLnk(StartMenuLnkPath, $"Ctrl+Alt+{key}");
+            WriteLnk(StartMenuLnkPath, $"Ctrl+Alt+{key}", arguments);
+            string action = arguments == "/autosave" ? "⚡ Auto Save & Close" : "Open NoteStitch";
             MessageBox.Show(
-                $"Shortcut created.\n\nHotkey:  Ctrl + Alt + {key}\n\nNote: Log off and back on (or restart) for Windows to register the hotkey.",
+                $"Shortcut created.\n\nHotkey:  Ctrl + Alt + {key}\nAction:  {action}\n\nNote: Log off and back on (or restart) for Windows to register the hotkey.",
                 "Shortcut Created", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
