@@ -5,10 +5,12 @@ namespace NoteStitch;
 
 public class NotepadDoc
 {
-    public IntPtr Hwnd      { get; set; }
-    public int    ProcessId { get; set; }
-    public string Filename  { get; set; } = string.Empty;
-    public string Text      { get; set; } = string.Empty;
+    public IntPtr Hwnd       { get; set; }
+    public int    ProcessId  { get; set; }
+    public string Filename   { get; set; } = string.Empty;
+    public string Text       { get; set; } = string.Empty;
+    /// <summary>Path to the Win11 tabstate .bin file, if applicable.</summary>
+    public string SourceFile { get; set; } = string.Empty;
     public int CharCount => Text.Length - Text.Count(c => c == '\r');
 }
 
@@ -162,7 +164,13 @@ public static class NotepadReader
             }
             else if (doc.ProcessId > 0)
             {
-                // Win11: only kill when every tab of this process is selected
+                // Win11: delete this tab's state file so Notepad won't restore it on next launch
+                if (!string.IsNullOrEmpty(doc.SourceFile))
+                {
+                    try { File.Delete(doc.SourceFile); } catch { }
+                }
+
+                // Only kill the process when every tab of this process is selected
                 if (totalPerPid.TryGetValue(doc.ProcessId, out int total) &&
                     selectedPerPid.TryGetValue(doc.ProcessId, out int sel) &&
                     sel >= total)

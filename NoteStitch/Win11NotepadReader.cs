@@ -155,10 +155,11 @@ internal static class Win11NotepadReader
 
         return new NotepadDoc
         {
-            Hwnd      = IntPtr.Zero,
-            ProcessId = pid,
-            Filename  = filename,
-            Text      = content
+            Hwnd       = IntPtr.Zero,
+            ProcessId  = pid,
+            Filename   = filename,
+            Text       = content,
+            SourceFile = filePath
         };
     }
 
