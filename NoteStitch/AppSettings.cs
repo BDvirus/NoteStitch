@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace NoteStitch;
 
-internal class AppSettings
+public class AppSettings
 {
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),

@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Reflection;
 
 namespace NoteStitch;
@@ -9,18 +8,14 @@ internal static class IconHelper
         Assembly.GetExecutingAssembly()
                 .GetManifestResourceStream("NoteStitch.Assets.icon.ico");
 
-    public static Icon Load()
-    {
-        var stream = OpenIco();
-        return stream is null ? SystemIcons.Application : new Icon(stream);
-    }
+    // Returns the path to the exe (WinUI 3 compatible, no Application.ExecutablePath)
+    private static string ExeDir =>
+        Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName)!;
 
     // Writes NoteStitch.ico next to the exe so the .lnk shortcut can reference it.
     public static string EnsureIcoFile()
     {
-        string icoPath = Path.Combine(
-            Path.GetDirectoryName(Application.ExecutablePath)!,
-            "NoteStitch.ico");
+        string icoPath = Path.Combine(ExeDir, "NoteStitch.ico");
 
         if (File.Exists(icoPath)) return icoPath;
 
@@ -39,5 +34,15 @@ internal static class IconHelper
         }
 
         return icoPath;
+    }
+
+    // Returns raw ICO bytes for use as Win32 HICON (loaded via LoadImage / CreateIconFromResource)
+    public static byte[]? GetIcoBytes()
+    {
+        using var stream = OpenIco();
+        if (stream is null) return null;
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
     }
 }

@@ -1,13 +1,15 @@
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using Microsoft.Windows.ApplicationModel.DynamicDependency;
 
 namespace NoteStitch;
 
 static class Program
 {
-    internal static readonly uint WM_NOTESTITCH_ACTIVATE  =
+    internal static readonly uint WM_NOTESTITCH_ACTIVATE =
         RegisterWindowMessage("WM_NOTESTITCH_ACTIVATE_2024");
-    internal static readonly uint WM_NOTESTITCH_AUTOSAVE  =
+    internal static readonly uint WM_NOTESTITCH_AUTOSAVE =
         RegisterWindowMessage("WM_NOTESTITCH_AUTOSAVE_2024");
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
@@ -18,33 +20,38 @@ static class Program
 
     private const int HWND_BROADCAST = 0xFFFF;
 
-    [STAThread]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.UI.Xaml.Markup.Compiler", " 3.0.0.2602")]
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+    [global::System.STAThreadAttribute]
     static void Main(string[] args)
     {
+        // Single-instance guard
         using var mutex = new System.Threading.Mutex(true, "NoteStitch_SingleInstance", out bool isNew);
         if (!isNew)
         {
             bool autoSave = args.Contains("/autosave", StringComparer.OrdinalIgnoreCase);
-            uint msg = autoSave ? WM_NOTESTITCH_AUTOSAVE : WM_NOTESTITCH_ACTIVATE;
-            PostMessage((IntPtr)HWND_BROADCAST, msg, IntPtr.Zero, IntPtr.Zero);
+            PostMessage((IntPtr)HWND_BROADCAST,
+                autoSave ? WM_NOTESTITCH_AUTOSAVE : WM_NOTESTITCH_ACTIVATE,
+                IntPtr.Zero, IntPtr.Zero);
             return;
         }
 
-        ApplicationConfiguration.Initialize();
-        var form = new MainForm();
 
-        // Background update check — runs after the UI is up
-        form.Shown += async (_, _) =>
-        {
-            try
-            {
-                var release = await UpdateChecker.GetLatestReleaseAsync();
-                if (release is not null)
-                    await Updater.PromptAndUpdateAsync(release, form);
-            }
-            catch { /* no network or API unavailable — silently ignore */ }
-        };
+        global::WinRT.ComWrappersSupport.InitializeComWrappers();
+        global::Microsoft.UI.Xaml.Application.Start((p) => {
+            var context = new global::Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(global::Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
+            global::System.Threading.SynchronizationContext.SetSynchronizationContext(context);
+            new App(args);
+        });
 
-        Application.Run(form);
+        //// Bootstrap Windows App SDK for unpackaged apps
+        //Bootstrap.Initialize(0x00010008);
+
+        //global::WinRT.ComWrappersSupport.InitializeComWrappers();
+        //Application.Start(p =>
+        //{
+        //    var context = DispatcherQueueController.CreateOnCurrentThread();
+        //    new App(args);
+        //});
     }
 }

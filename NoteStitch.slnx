@@ -1,3 +1,7 @@
 <Solution>
   <Project Path="NoteStitch/NoteStitch.csproj" />
+  <Project Path="SystemTrayWinUI3/SystemTrayWinUI3.csproj">
+    <Platform Project="x64" />
+    <Deploy />
+  </Project>
 </Solution>
