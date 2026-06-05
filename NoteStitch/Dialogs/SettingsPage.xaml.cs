@@ -20,6 +20,7 @@ public sealed partial class SettingsPage : Page
         FolderBox.Text            = settings.AutoSaveFolder;
         IncludeSavedCb.IsChecked  = settings.IncludeSavedFiles;
         IncludeMergedCb.IsChecked = settings.IncludeMergedFiles;
+        RunOnStartupCb.IsChecked  = StartupManager.IsEnabled() || settings.RunOnWindowsStartup;
     }
 
     private async void OnBrowseClicked(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -43,6 +44,7 @@ public sealed partial class SettingsPage : Page
             _settings.AutoSaveFolder    = FolderBox.Text.Trim();
             _settings.IncludeSavedFiles  = IncludeSavedCb.IsChecked  == true;
             _settings.IncludeMergedFiles = IncludeMergedCb.IsChecked == true;
+            _settings.RunOnWindowsStartup = RunOnStartupCb.IsChecked == true;
         }
         _tcs?.SetResult(true);
         Frame.GoBack();

@@ -33,6 +33,13 @@
             <CheckBox x:Name="IncludeMergedCb"
                       Content="Include previously merged files (merged_notepads_…)"/>
 
+            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4,0,4"/>
+
+            <TextBlock Text="Startup" FontWeight="SemiBold"/>
+
+            <CheckBox x:Name="RunOnStartupCb"
+                      Content="Run on Windows startup"/>
+
         </StackPanel>
 
         <!-- Buttons -->

@@ -70,14 +70,6 @@
             <Button x:Name="ShortcutButton"
                     Content="⌨ Shortcut…"
                     Click="OnShortcutClicked"/>
-            <Button x:Name="SettingsButton"
-                    Content="⚙"
-                    Width="36"
-                    Click="OnSettingsClicked"/>
-            <Button x:Name="AboutButton"
-                    Content="ℹ"
-                    Width="36"
-                    Click="OnAboutClicked"/>
         </StackPanel>
     </Grid>
 </Page>

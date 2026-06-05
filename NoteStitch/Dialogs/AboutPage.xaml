@@ -17,8 +17,18 @@
 
             <!-- App identity -->
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <Image x:Name="AppIcon" Width="64" Height="64"
-                       VerticalAlignment="Top"/>
+                <Border Width="64"
+                        Height="64"
+                        CornerRadius="16"
+                        Background="Transparent"
+                        VerticalAlignment="Top">
+                    <Image x:Name="AppIcon"
+                           Width="40"
+                           Height="40"
+                           Source="ms-appx:///Assets/notes.png"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+                </Border>
                 <StackPanel VerticalAlignment="Center" Spacing="4">
                     <TextBlock Text="NoteStitch"
                                FontSize="20" FontWeight="Bold"/>
@@ -34,12 +44,25 @@
             <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
 
             <!-- About text -->
-            <RichEditBox x:Name="AboutText"
-                         IsReadOnly="True"
-                         BorderThickness="0"
-                         Height="160"
-                         IsTabStop="False"
-                         Background="Transparent"/>
+            <StackPanel Spacing="8">
+                <TextBlock TextWrapping="Wrap">
+                    <Run Text="Created by "/>
+                    <Run Text="Dvirus" FontWeight="SemiBold"/>
+                </TextBlock>
+
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="GitHub:"
+                               VerticalAlignment="Center"/>
+                    <HyperlinkButton Content="github.com/BDvirus/NoteStitch"
+                                     NavigateUri="https://github.com/BDvirus/NoteStitch"
+                                     Padding="0"
+                                     HorizontalAlignment="Left"/>
+                </StackPanel>
+
+                <TextBlock Text="NoteStitch detects all open Notepad windows and merges their content into a single document. Supports Windows 10 and Windows 11 (including multi-tab Notepad)."
+                           TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
 
             <!-- Vision -->
             <TextBlock Text="Vision" FontWeight="SemiBold"

@@ -1,5 +1,4 @@
 using Microsoft.UI.Xaml;
-using SystemTrayWinUI3;
 using Windows.Foundation;
 
 namespace NoteStitch;
@@ -16,9 +15,8 @@ public partial class App : Application
     }
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-       
-
         MainWindow = new MainWindow();
+        MainWindow.HandleLaunchArguments(_args);
         MainWindow.Activate();
 
         // Background update check — fire once after window first activates

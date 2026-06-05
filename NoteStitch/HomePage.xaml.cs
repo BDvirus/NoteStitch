@@ -4,7 +4,6 @@ using System.Text;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using SystemTray.Core;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
@@ -16,8 +15,6 @@ public sealed partial class HomePage : Page
     private List<NotepadDoc> _docs = new();
     private bool _allSelected = true;
     private AppSettings _settings = AppSettings.Load();
-    private SystemTrayManager? _trayManager;
-    private WindowHelper? _windowHelper;
 
 
     // WinEvent hook
@@ -76,6 +73,11 @@ public sealed partial class HomePage : Page
     }
 
     public void TriggerAutoSave() => _dq.TryEnqueue(() => OnAutoMergeClicked(null, null));
+    public void ReloadSettings()
+    {
+        _settings = AppSettings.Load();
+        RefreshNotepads();
+    }
 
     // ── WinEvent hooks ───────────────────────────────────────────────────────
 
@@ -270,27 +272,7 @@ public sealed partial class HomePage : Page
     private void OnShortcutClicked(object? sender, RoutedEventArgs? e) =>
         _ = ShowShortcutDialogAsync();
 
-    private void OnSettingsClicked(object? sender, RoutedEventArgs? e) =>
-        _ = ShowSettingsDialogAsync();
-
-    private void OnAboutClicked(object? sender, RoutedEventArgs? e) =>
-        _ = ShowAboutDialogAsync();
-
     // ── Dialogs ──────────────────────────────────────────────────────────────
-
-    private async Task ShowSettingsDialogAsync()
-    {
-        var tcs = new TaskCompletionSource<bool>();
-        this.Frame.Navigate(typeof(SettingsPage), (_settings, tcs));
-        bool saved = await tcs.Task;
-        if (!saved) return;
-
-        var err = _settings.Save();
-        if (err is not null)
-            await Updater.ShowDialogAsync(App.MainWindow!, "Warning",
-                $"Settings could not be saved:\n{err}", "OK", "");
-        RefreshNotepads();
-    }
 
     private async Task ShowShortcutDialogAsync()
     {
@@ -302,12 +284,6 @@ public sealed partial class HomePage : Page
         string key = result.Value.key;
         string? arg = result.Value.isAutoSave ? "/autosave" : null;
         CreateStartMenuShortcut(key, arg);
-    }
-
-    private Task ShowAboutDialogAsync()
-    {
-        this.Frame.Navigate(typeof(AboutPage));
-        return Task.CompletedTask;
     }
 
     private async Task CheckForUpdatesManualAsync()
@@ -402,8 +378,6 @@ public sealed partial class HomePage : Page
         UnhookWinEvent(_hookValueChange);
         _tabStateWatcher?.Dispose();
         _debounce?.Stop();
-        _trayManager?.Dispose();
-        _windowHelper?.Dispose();
     }
 
 
