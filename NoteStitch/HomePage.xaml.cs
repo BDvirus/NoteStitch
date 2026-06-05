@@ -123,6 +123,14 @@ public sealed partial class HomePage : Page
     {
         if (hwnd == IntPtr.Zero) return;
 
+        // On destroy, the window can already be gone by the time we inspect it.
+        // Refresh on top-level window closes so Notepad removals don't get stuck stale.
+        if (eventType == EVENT_OBJECT_DESTROY && idObject == 0)
+        {
+            _dq.TryEnqueue(() => { _debounce.Stop(); _debounce.Start(); });
+            return;
+        }
+
         IntPtr root = eventType == EVENT_OBJECT_VALUECHANGE
             ? GetAncestor(hwnd, GA_ROOT)
             : (idObject == 0 ? hwnd : IntPtr.Zero);
