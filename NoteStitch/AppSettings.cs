@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace NoteStitch;
 
-internal class AppSettings
+public class AppSettings
 {
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -11,6 +11,7 @@ internal class AppSettings
     public string AutoSaveFolder        { get; set; } = string.Empty;
     public bool   IncludeSavedFiles     { get; set; } = false;
     public bool   IncludeMergedFiles    { get; set; } = false;
+    public bool   RunOnWindowsStartup   { get; set; } = false;
 
     public static AppSettings Load()
     {

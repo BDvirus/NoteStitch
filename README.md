@@ -4,7 +4,7 @@
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square&logo=windows)](https://www.microsoft.com/windows)
-[![WinForms](https://img.shields.io/badge/UI-WinForms-blueviolet?style=flat-square)]()
+[![WinUI 3](https://img.shields.io/badge/UI-WinUI%203-blueviolet?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
 ---
@@ -33,6 +33,9 @@ NoteStitch detects every open Notepad window, lets you pick which ones to includ
 | 📋 **Copy / Save** | One-click copy to clipboard or save to file |
 | 🗑️ **Close originals** | Optionally close the source Notepad windows after merging |
 | ⌨️ **Hotkey launch** | Assign a `Ctrl + Alt + ?` shortcut to open NoteStitch from anywhere |
+| 🪟 **Modern shell** | WinUI 3 interface with Mica backdrop and a sidebar (Home / Settings / About) |
+| 🛎️ **Tray + startup** | Lives in the system tray and can launch on Windows startup |
+| ⬆️ **Auto-update** | Checks GitHub Releases on launch and updates itself in place |
 
 ---
 
@@ -63,9 +66,17 @@ NoteStitch detects every open Notepad window, lets you pick which ones to includ
 
 ## Getting started
 
-### Download
+### Install with a single command
 
-Grab the latest single-file executable from [Releases](../../releases) — no installer, no runtime required.
+Paste this into **PowerShell** — it downloads the latest release and launches it:
+
+```powershell
+$d="$env:LOCALAPPDATA\NoteStitch"; ni $d -ItemType Directory -Force | Out-Null; irm "https://github.com/BDvirus/NoteStitch/releases/latest/download/NoteStitch.exe" -OutFile "$d\NoteStitch.exe"; & "$d\NoteStitch.exe"
+```
+
+### Download manually
+
+Or grab the latest self-contained executable straight from [Releases](../../releases) — no installer required.
 
 ### Build from source
 
@@ -95,9 +106,10 @@ Click **⌨ Shortcut…** to register a `Ctrl + Alt + ?` global hotkey that laun
 
 ## Technical notes
 
-- Uses **`SetWinEventHook`** (`EVENT_OBJECT_SHOW`, `EVENT_OBJECT_DESTROY`, `EVENT_OBJECT_NAMECHANGE`) to react to Notepad windows opening, closing, and being renamed — no polling loop
-- Reads content via **`WM_GETTEXT`** sent to the child `Edit` control of each Notepad window
-- Ships as a **self-contained single `.exe`** (win-x64) — nothing to install
+- Built on **WinUI 3 / Windows App SDK** (.NET 10) with a Mica-backdrop shell, `NavigationView` sidebar, and system-tray integration
+- Uses **`SetWinEventHook`** (`EVENT_OBJECT_SHOW`, `EVENT_OBJECT_DESTROY`, `EVENT_OBJECT_NAMECHANGE`, `EVENT_OBJECT_VALUECHANGE`) to react to Notepad windows opening, closing, and being renamed — no polling loop
+- On **Windows 11** it reads every tab — including inactive ones — directly from Notepad's `TabState` binary files; on classic Notepad it falls back to **`WM_GETTEXT`** sent to the child `Edit` / `RichEditD2DPT` control
+- Ships as a **self-contained** executable (win-x64) — the Windows App SDK runtime is bundled, nothing to install
 
 ---
 
