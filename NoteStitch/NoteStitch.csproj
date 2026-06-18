@@ -19,7 +19,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <Version>1.0.11</Version>
+    <Version>1.0.12</Version>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
   </PropertyGroup>
 
@@ -52,8 +52,10 @@
 	<PropertyGroup>
 		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
 		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+		<!-- Trimming disabled: it strips WinUI/WinRT types needed at startup and the
+		     trimmed exe crashes on launch (0xC0000409). The app is self-contained/multi-file
+		     anyway, so trimming saves little. -->
+		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
 	
 </Project>
