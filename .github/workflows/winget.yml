@@ -7,7 +7,7 @@ name: Publish to winget
 # Prerequisites (one-time, manual):
 #   1. Add a repo secret WINGET_TOKEN = a classic PAT with `public_repo` scope.
 #      (The default GITHUB_TOKEN cannot fork winget-pkgs / open the cross-repo PR.)
-#   2. Bootstrap the FIRST version into winget-pkgs once (run `komac new Dvirus.NoteStitch`
+#   2. Bootstrap the FIRST version into winget-pkgs once (run `komac new BDvirus.NoteStitch`
 #      locally, or submit the winget/ manifests by hand). winget-releaser handles every
 #      version after that automatically.
 
@@ -22,7 +22,7 @@ jobs:
       - name: Submit NoteStitch to winget-pkgs
         uses: vedantmgoyal9/winget-releaser@v2
         with:
-          identifier: Dvirus.NoteStitch
+          identifier: BDvirus.NoteStitch
           # The release tag (vX.Y.Z) maps to PackageVersion X.Y.Z automatically.
           installers-regex: 'NoteStitch\.zip$'
           token: ${{ secrets.WINGET_TOKEN }}

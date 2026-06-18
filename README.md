@@ -69,7 +69,7 @@ NoteStitch detects every open Notepad window, lets you pick which ones to includ
 ### Install with winget
 
 ```powershell
-winget install Dvirus.NoteStitch
+winget install BDvirus.NoteStitch
 ```
 
 ### Install with a single command
