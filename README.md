@@ -5,7 +5,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square&logo=windows)](https://www.microsoft.com/windows)
 [![WinUI 3](https://img.shields.io/badge/UI-WinUI%203-blueviolet?style=flat-square)]()
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+ 
 
 ---
 
@@ -121,4 +121,4 @@ Click **⌨ Shortcut…** to register a `Ctrl + Alt + ?` global hotkey that laun
 
 ## License
 
-MIT — do whatever you want with it.
+Licensed under the [GNU General Public License v3.0](LICENSE).

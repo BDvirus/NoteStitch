@@ -8,7 +8,7 @@ PublisherSupportUrl: https://github.com/BDvirus/NoteStitch/issues
 Author: Dvirus
 PackageName: NoteStitch
 PackageUrl: https://github.com/BDvirus/NoteStitch
-License: MIT
+License: GPL-3.0
 LicenseUrl: https://github.com/BDvirus/NoteStitch/blob/main/LICENSE
 ShortDescription: Stitch multiple Notepad windows into one document — instantly.
 Description: >-
