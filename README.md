@@ -66,17 +66,23 @@ NoteStitch detects every open Notepad window, lets you pick which ones to includ
 
 ## Getting started
 
-### Install with a single command
-
-Paste this into **PowerShell** — it downloads the latest release and launches it:
+### Install with winget
 
 ```powershell
-$d="$env:LOCALAPPDATA\NoteStitch"; ni $d -ItemType Directory -Force | Out-Null; irm "https://github.com/BDvirus/NoteStitch/releases/latest/download/NoteStitch.exe" -OutFile "$d\NoteStitch.exe"; & "$d\NoteStitch.exe"
+winget install Dvirus.NoteStitch
+```
+
+### Install with a single command
+
+Prefer not to use winget (or it hasn't propagated yet)? Paste this into **PowerShell** — it downloads the latest release, unpacks it, and launches it:
+
+```powershell
+$d="$env:LOCALAPPDATA\NoteStitch"; $z="$env:TEMP\NoteStitch.zip"; ni $d -ItemType Directory -Force | Out-Null; irm "https://github.com/BDvirus/NoteStitch/releases/latest/download/NoteStitch.zip" -OutFile $z; Expand-Archive $z $d -Force; & "$d\NoteStitch.exe"
 ```
 
 ### Download manually
 
-Or grab the latest self-contained executable straight from [Releases](../../releases) — no installer required.
+Or grab the latest `NoteStitch.zip` straight from [Releases](../../releases), extract it anywhere, and run `NoteStitch.exe` — no installer required.
 
 ### Build from source
 

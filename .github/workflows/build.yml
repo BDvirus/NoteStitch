@@ -35,11 +35,17 @@ jobs:
           -c Release
           -o publish
 
+      # The app is a multi-file self-contained WinUI 3 bundle; the bare apphost exe
+      # cannot run alone. Ship the whole publish folder as a single runnable ZIP.
+      - name: Package (zip)
+        shell: pwsh
+        run: Compress-Archive -Path publish/* -DestinationPath NoteStitch.zip -Force
+
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: NoteStitch
-          path: publish/NoteStitch.exe
+          path: NoteStitch.zip
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -51,14 +57,14 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: NoteStitch
-          path: publish
+          path: dist
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Create GitHub Release
         run: |
           gh release create "${{ github.ref_name }}" \
-            publish/NoteStitch.exe \
+            dist/NoteStitch.zip \
             --repo "${{ github.repository }}" \
             --title "${{ github.ref_name }}" \
             --generate-notes

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: Dvirus.NoteStitch
+PackageVersion: 1.0.13
+PackageLocale: en-US
+Publisher: Dvirus
+PublisherUrl: https://github.com/BDvirus
+PublisherSupportUrl: https://github.com/BDvirus/NoteStitch/issues
+Author: Dvirus
+PackageName: NoteStitch
+PackageUrl: https://github.com/BDvirus/NoteStitch
+License: MIT
+LicenseUrl: https://github.com/BDvirus/NoteStitch/blob/main/LICENSE
+ShortDescription: Stitch multiple Notepad windows into one document — instantly.
+Description: >-
+  NoteStitch detects every open Notepad window, lets you pick which ones to include, and merges
+  them into a single clean document with labeled sections. Copy it, save it, or close the originals.
+  Supports Windows 10 and Windows 11 (including multi-tab Notepad).
+Moniker: notestitch
+Tags:
+  - notepad
+  - merge
+  - productivity
+  - text
+  - utility
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
