@@ -1,8 +1,8 @@
 name: Publish to winget
 
-# Runs after a GitHub Release is published (the build workflow attaches NoteStitch.zip).
-# Uses winget-releaser (komac under the hood) to bump the manifest, recompute the SHA256
-# from the release asset, and open a PR to microsoft/winget-pkgs.
+# Runs after a GitHub Release is published (the build workflow attaches NoteStitch.zip and NoteStitch-Setup.exe).
+# WinGet selects NoteStitch-Setup.exe through winget-releaser (komac under the hood), which bumps
+# the manifest, recomputes the SHA256 from the setup release asset, and opens a PR to winget-pkgs.
 #
 # Prerequisites (one-time, manual):
 #   1. Add a repo secret WINGET_TOKEN = a classic PAT with `public_repo` scope.

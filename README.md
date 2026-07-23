@@ -72,17 +72,30 @@ NoteStitch detects every open Notepad window, lets you pick which ones to includ
 winget install BDvirus.NoteStitch
 ```
 
-### Install with a single command
+Fresh 1.0.14+ installs and upgrades use the standard Start-menu installer.
 
-Prefer not to use winget (or it hasn't propagated yet)? Paste this into **PowerShell** — it downloads the latest release, unpacks it, and launches it:
+### Upgrading from WinGet 1.0.13
+
+Version 1.0.13 was a portable ZIP package, so this one-time move to the 1.0.14 installer requires a manual reinstall. Existing WinGet 1.0.13 users must run:
 
 ```powershell
-$d="$env:LOCALAPPDATA\NoteStitch"; $z="$env:TEMP\NoteStitch.zip"; ni $d -ItemType Directory -Force | Out-Null; irm "https://github.com/BDvirus/NoteStitch/releases/latest/download/NoteStitch.zip" -OutFile $z; Expand-Archive $z $d -Force; & "$d\NoteStitch.exe"
+winget uninstall BDvirus.NoteStitch
+winget install BDvirus.NoteStitch
+```
+
+Your settings in `%AppData%\NoteStitch` are preserved. After this one-time migration, fresh 1.0.14+ installs and upgrades use the Start-menu installer normally.
+
+### Install with a single command
+
+Prefer not to use winget (or it hasn't propagated yet)? Paste this into **PowerShell** — it downloads and launches the latest Start-menu installer:
+
+```powershell
+$i="$env:TEMP\NoteStitch-Setup.exe"; irm "https://github.com/BDvirus/NoteStitch/releases/latest/download/NoteStitch-Setup.exe" -OutFile $i; & $i
 ```
 
 ### Download manually
 
-Or grab the latest `NoteStitch.zip` straight from [Releases](../../releases), extract it anywhere, and run `NoteStitch.exe` — no installer required.
+Download `NoteStitch-Setup.exe` from [Releases](../../releases) and run it to install NoteStitch on the Start menu. The accompanying `NoteStitch.zip` remains available for portable use.
 
 ### Build from source
 

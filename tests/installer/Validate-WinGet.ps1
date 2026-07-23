@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $workflow = Get-Content -Raw -LiteralPath (Join-Path $root '.github\workflows\winget.yml')
+$readme = Get-Content -Raw -LiteralPath (Join-Path $root 'README.md')
 $installer = Get-Content -Raw -LiteralPath (Join-Path $root 'winget\BDvirus.NoteStitch.installer.yaml')
 $versionManifest = Get-Content -Raw -LiteralPath (Join-Path $root 'winget\BDvirus.NoteStitch.yaml')
 $localeManifest = Get-Content -Raw -LiteralPath (Join-Path $root 'winget\BDvirus.NoteStitch.locale.en-US.yaml')
@@ -8,6 +9,28 @@ $project = Get-Content -Raw -LiteralPath (Join-Path $root 'NoteStitch\NoteStitch
 
 if (-not $workflow.Contains("installers-regex: 'NoteStitch-Setup\.exe$'")) {
     throw 'WinGet workflow must select NoteStitch-Setup.exe.'
+}
+
+if (-not $workflow.Contains('the build workflow attaches NoteStitch.zip and NoteStitch-Setup.exe')) {
+    throw 'WinGet workflow must state that releases attach both the ZIP and setup executable.'
+}
+
+if (-not $workflow.Contains('selects NoteStitch-Setup.exe')) {
+    throw 'WinGet workflow must state that WinGet selects the setup executable.'
+}
+
+$migrationGuidance = @(
+    'Existing WinGet 1.0.13 users',
+    'winget uninstall BDvirus.NoteStitch',
+    'winget install BDvirus.NoteStitch',
+    '%AppData%\NoteStitch',
+    'preserved'
+)
+
+foreach ($entry in $migrationGuidance) {
+    if (-not $readme.Contains($entry)) {
+        throw "README migration guidance is missing: $entry"
+    }
 }
 
 $requiredInstallerEntries = @(
