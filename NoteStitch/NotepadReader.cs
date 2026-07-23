@@ -159,16 +159,8 @@ public static class NotepadReader
         var selected = selectedDocs.ToList();
         var all      = allDocs.ToList();
 
-        // For Win11 tabstate docs (Hwnd == Zero) we must only kill the process when ALL
-        // tabs belonging to that PID are selected — otherwise we'd close unselected tabs.
-        // Bug #6 fix: count total vs selected per PID.
-        var totalPerPid    = all.Where(d => d.Hwnd == IntPtr.Zero && d.ProcessId > 0)
-                                .GroupBy(d => d.ProcessId)
-                                .ToDictionary(g => g.Key, g => g.Count());
-        var selectedPerPid = selected.Where(d => d.Hwnd == IntPtr.Zero && d.ProcessId > 0)
-                                     .GroupBy(d => d.ProcessId)
-                                     .ToDictionary(g => g.Key, g => g.Count());
-
+        var allWin11 = all.Where(d => d.Hwnd == IntPtr.Zero).ToList();
+        var selectedWin11 = selected.Where(d => d.Hwnd == IntPtr.Zero).ToList();
         var pids = new HashSet<int>();
         foreach (var doc in selected)
         {
@@ -178,28 +170,25 @@ public static class NotepadReader
                 GetWindowThreadProcessId(doc.Hwnd, out uint pid);
                 if (pid > 0) pids.Add((int)pid);
             }
-            else if (doc.ProcessId > 0)
-            {
-                // Win11: delete this tab's state file so Notepad won't restore it on next launch
-                if (!string.IsNullOrEmpty(doc.SourceFile))
-                {
-                    try { File.Delete(doc.SourceFile); } catch { }
-                }
-
-                // Only kill the process when every tab of this process is selected
-                if (totalPerPid.TryGetValue(doc.ProcessId, out int total) &&
-                    selectedPerPid.TryGetValue(doc.ProcessId, out int sel) &&
-                    sel >= total)
-                {
-                    pids.Add(doc.ProcessId);
-                }
-            }
         }
 
         foreach (int pid in pids)
         {
             try { System.Diagnostics.Process.GetProcessById(pid).Kill(); }
             catch { /* process may have already exited */ }
+        }
+
+        // Windows 11 Notepad keeps both per-tab files and a separate window/session index.
+        // It is only safe to clear them when every known tab was selected.
+        if (allWin11.Count > 0 && selectedWin11.Count >= allWin11.Count)
+        {
+            var processes = System.Diagnostics.Process.GetProcessesByName("Notepad");
+            var processIds = processes.Select(process => process.Id).ToArray();
+            foreach (var process in processes) process.Dispose();
+
+            Win11NotepadSessionCloser.CloseAll(
+                processIds,
+                allWin11.Select(doc => doc.SourceFile));
         }
     }
 
