@@ -4,7 +4,7 @@ $workflowPath = Join-Path $root '.github\workflows\build.yml'
 $workflow = Get-Content -Raw -LiteralPath $workflowPath
 
 $required = @(
-    'choco install innosetup --version=6.7.3 --no-progress -y',
+    'choco install innosetup --version=6.7.1 --no-progress -y',
     'installer\NoteStitch.iss',
     'Copy-Item artifacts/installer/NoteStitch-Setup.exe NoteStitch-Setup.exe -Force',
     'dist/NoteStitch-Setup.exe'
