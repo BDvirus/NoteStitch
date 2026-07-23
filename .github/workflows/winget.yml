@@ -24,5 +24,5 @@ jobs:
         with:
           identifier: BDvirus.NoteStitch
           # The release tag (vX.Y.Z) maps to PackageVersion X.Y.Z automatically.
-          installers-regex: 'NoteStitch\.zip$'
+          installers-regex: 'NoteStitch-Setup\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}

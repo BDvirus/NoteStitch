@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 PackageIdentifier: BDvirus.NoteStitch
-PackageVersion: 1.0.13
+PackageVersion: 1.0.14
 PackageLocale: en-US
 Publisher: BDvirus
 PublisherUrl: https://github.com/BDvirus
