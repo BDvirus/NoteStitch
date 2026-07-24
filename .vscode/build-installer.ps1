@@ -67,11 +67,11 @@ if (-not (Test-Path -LiteralPath $publishedExecutable -PathType Leaf)) {
 }
 
 [xml]$project = Get-Content -LiteralPath $projectPath -Raw
-$version = @($project.Project.PropertyGroup.Version) |
-    Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+$versionNode = Select-Xml -Xml $project -XPath '/Project/PropertyGroup/Version' |
     Select-Object -First 1
+$version = if ($versionNode) { $versionNode.Node.InnerText } else { $null }
 
-if (-not $version) {
+if ([string]::IsNullOrWhiteSpace($version)) {
     throw "No Version value was found in $projectPath."
 }
 

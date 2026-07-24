@@ -39,6 +39,7 @@ $requiredScriptEntries = @(
     '--accept-package-agreements',
     '--accept-source-agreements',
     'Installer.pubxml',
+    "Select-Xml -Xml `$project -XPath '/Project/PropertyGroup/Version'",
     '/DPublishDir=',
     '/DMyAppVersion=',
     'NoteStitch-Setup.exe'
