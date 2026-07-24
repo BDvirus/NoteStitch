@@ -38,6 +38,12 @@
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Content Update="Assets\notes.png;Assets\icon.ico"
+		         CopyToOutputDirectory="PreserveNewest"
+		         CopyToPublishDirectory="PreserveNewest" />
+	</ItemGroup>
+
 
 	<!--
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution

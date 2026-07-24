@@ -35,6 +35,12 @@ jobs:
           -c Release
           -o publish
 
+      - name: Validate published assets
+        shell: pwsh
+        run: >
+          pwsh -NoProfile -File tests/installer/Validate-PublishAssets.ps1
+          -PublishDirectory publish
+
       - name: Install Inno Setup
         run: choco install innosetup --version=6.7.1 --no-progress -y
 
