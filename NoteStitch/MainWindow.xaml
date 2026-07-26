@@ -22,8 +22,8 @@
                         Background="Transparent"
                         VerticalAlignment="Center">
                     <Image Source="ms-appx:///Assets/notes.png"
-                           Width="24"
-                           Height="24"
+                           Width="40"
+                           Height="40"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
                 </Border>
