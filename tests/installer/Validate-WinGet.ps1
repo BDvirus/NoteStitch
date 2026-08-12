@@ -7,18 +7,20 @@ $versionManifest = Get-Content -Raw -LiteralPath (Join-Path $root 'winget\BDviru
 $localeManifest = Get-Content -Raw -LiteralPath (Join-Path $root 'winget\BDvirus.NoteStitch.locale.en-US.yaml')
 $project = Get-Content -Raw -LiteralPath (Join-Path $root 'NoteStitch\NoteStitch.csproj')
 
-if (-not $workflow.Contains("installers-regex: 'NoteStitch-Setup\.exe$'")) {
-    throw 'WinGet workflow must select NoteStitch-Setup.exe.'
-}
-
 $requiredWorkflowEntries = @(
     'workflow_run:',
     'workflows: ["Build & Release"]',
     "types: [completed]",
     "github.event.workflow_run.conclusion == 'success'",
     "startsWith(github.event.workflow_run.head_branch, 'v')",
-    'release-tag: ${{ github.event.workflow_run.head_branch }}',
-    'version: ${{ steps.release.outputs.version }}'
+    'uses: actions/checkout@v5',
+    'ref: main',
+    'NoteStitch-Setup.exe',
+    'Get-FileHash',
+    "NestedInstaller(Type|Files)|ArchiveBinariesDependOnPath",
+    'cargo binstall komac -y',
+    'komac submit winget --yes',
+    'GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}'
 )
 
 foreach ($entry in $requiredWorkflowEntries) {
@@ -29,6 +31,10 @@ foreach ($entry in $requiredWorkflowEntries) {
 
 if ($workflow -match '(?m)^\s*release:\s*$') {
     throw 'WinGet workflow must not depend on a release event created by GITHUB_TOKEN.'
+}
+
+if ($workflow.Contains('vedantmgoyal9/winget-releaser')) {
+    throw 'WinGet workflow must submit the corrected manifests instead of inheriting portable fields.'
 }
 
 if (-not $workflow.Contains('the build workflow attaches NoteStitch.zip and NoteStitch-Setup.exe')) {

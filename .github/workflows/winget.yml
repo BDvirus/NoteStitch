@@ -1,8 +1,8 @@
 name: Publish to winget
 
 # Runs after a successful tagged Build & Release workflow; the build workflow attaches NoteStitch.zip and NoteStitch-Setup.exe.
-# WinGet selects NoteStitch-Setup.exe through winget-releaser (komac under the hood), which bumps
-# the manifest, recomputes the SHA256 from the setup release asset, and opens a PR to winget-pkgs.
+# WinGet selects NoteStitch-Setup.exe, updates the checked-in clean Inno manifests with the release
+# version and SHA256, then uses Komac to open a PR to winget-pkgs.
 #
 # Prerequisites (one-time, manual):
 #   1. Add a repo secret WINGET_TOKEN = a classic PAT with `public_repo` scope.
@@ -23,18 +23,48 @@ jobs:
       startsWith(github.event.workflow_run.head_branch, 'v')
     runs-on: ubuntu-latest
     steps:
-      - name: Resolve release version
-        id: release
-        shell: bash
+      - name: Checkout corrected manifest templates
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Prepare release manifests
+        shell: pwsh
         env:
           RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
-        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          $version = $env:RELEASE_TAG -replace '^v', ''
+          $installerUrl = "https://github.com/${{ github.repository }}/releases/download/$env:RELEASE_TAG/NoteStitch-Setup.exe"
+          $installerPath = Join-Path $env:RUNNER_TEMP 'NoteStitch-Setup.exe'
+
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+          $installerSha256 = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash
+
+          Get-ChildItem -LiteralPath winget -Filter '*.yaml' | ForEach-Object {
+            $content = Get-Content -LiteralPath $_.FullName -Raw
+            $content = $content -replace '(?m)^PackageVersion: .+$', "PackageVersion: $version"
+            Set-Content -LiteralPath $_.FullName -Value $content -NoNewline
+          }
+
+          $manifestPath = 'winget/BDvirus.NoteStitch.installer.yaml'
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw
+          $manifest = $manifest -replace '(?m)^\s*InstallerUrl: .+$', "    InstallerUrl: $installerUrl"
+          $manifest = $manifest -replace '(?m)^\s*InstallerSha256: .+$', "    InstallerSha256: $installerSha256"
+
+          if ($manifest -match 'NestedInstaller(Type|Files)|ArchiveBinariesDependOnPath') {
+            throw 'The Inno manifest contains obsolete portable installer fields.'
+          }
+
+          Set-Content -LiteralPath $manifestPath -Value $manifest -NoNewline
+          Write-Host "Prepared NoteStitch $version with SHA256 $installerSha256"
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install Komac
+        run: cargo binstall komac -y
 
       - name: Submit NoteStitch to winget-pkgs
-        uses: vedantmgoyal9/winget-releaser@v2
-        with:
-          identifier: BDvirus.NoteStitch
-          release-tag: ${{ github.event.workflow_run.head_branch }}
-          version: ${{ steps.release.outputs.version }}
-          installers-regex: 'NoteStitch-Setup\.exe$'
-          token: ${{ secrets.WINGET_TOKEN }}
+        run: komac submit winget --yes
+        env:
+          GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
