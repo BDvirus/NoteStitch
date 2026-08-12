@@ -11,6 +11,26 @@ if (-not $workflow.Contains("installers-regex: 'NoteStitch-Setup\.exe$'")) {
     throw 'WinGet workflow must select NoteStitch-Setup.exe.'
 }
 
+$requiredWorkflowEntries = @(
+    'workflow_run:',
+    'workflows: ["Build & Release"]',
+    "types: [completed]",
+    "github.event.workflow_run.conclusion == 'success'",
+    "startsWith(github.event.workflow_run.head_branch, 'v')",
+    'release-tag: ${{ github.event.workflow_run.head_branch }}',
+    'version: ${{ steps.release.outputs.version }}'
+)
+
+foreach ($entry in $requiredWorkflowEntries) {
+    if (-not $workflow.Contains($entry)) {
+        throw "WinGet workflow is missing the release-completion contract: $entry"
+    }
+}
+
+if ($workflow -match '(?m)^\s*release:\s*$') {
+    throw 'WinGet workflow must not depend on a release event created by GITHUB_TOKEN.'
+}
+
 if (-not $workflow.Contains('the build workflow attaches NoteStitch.zip and NoteStitch-Setup.exe')) {
     throw 'WinGet workflow must state that releases attach both the ZIP and setup executable.'
 }

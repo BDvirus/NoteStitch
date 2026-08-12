@@ -1,6 +1,6 @@
 name: Publish to winget
 
-# Runs after a GitHub Release is published (the build workflow attaches NoteStitch.zip and NoteStitch-Setup.exe).
+# Runs after a successful tagged Build & Release workflow; the build workflow attaches NoteStitch.zip and NoteStitch-Setup.exe.
 # WinGet selects NoteStitch-Setup.exe through winget-releaser (komac under the hood), which bumps
 # the manifest, recomputes the SHA256 from the setup release asset, and opens a PR to winget-pkgs.
 #
@@ -12,17 +12,29 @@ name: Publish to winget
 #      version after that automatically.
 
 on:
-  release:
-    types: [released]
+  workflow_run:
+    workflows: ["Build & Release"]
+    types: [completed]
 
 jobs:
   publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve release version
+        id: release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
       - name: Submit NoteStitch to winget-pkgs
         uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: BDvirus.NoteStitch
-          # The release tag (vX.Y.Z) maps to PackageVersion X.Y.Z automatically.
+          release-tag: ${{ github.event.workflow_run.head_branch }}
+          version: ${{ steps.release.outputs.version }}
           installers-regex: 'NoteStitch-Setup\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
