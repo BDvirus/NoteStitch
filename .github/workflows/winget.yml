@@ -88,6 +88,30 @@ jobs:
             throw 'WINGET_TOKEN cannot push to BDvirus/winget-pkgs.'
           }
 
+      - name: Sync winget-pkgs fork
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          $headers = @{
+            Accept = 'application/vnd.github+json'
+            Authorization = "Bearer $env:WINGET_TOKEN"
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $body = @{ branch = 'master' } | ConvertTo-Json
+          $response = Invoke-WebRequest `
+            -Method Post `
+            -Headers $headers `
+            -ContentType 'application/json' `
+            -Body $body `
+            -SkipHttpErrorCheck `
+            -Uri 'https://api.github.com/repos/BDvirus/winget-pkgs/merge-upstream'
+
+          if ($response.StatusCode -notin 200, 409) {
+            throw "Failed to sync BDvirus/winget-pkgs (HTTP $($response.StatusCode)): $($response.Content)"
+          }
+          Write-Host "Fork synchronization result: HTTP $($response.StatusCode)"
+
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@main
 

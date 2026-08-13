@@ -23,6 +23,9 @@ $requiredWorkflowEntries = @(
     'https://api.github.com/repos/BDvirus/winget-pkgs',
     "permissions.push",
     "x-oauth-scopes",
+    'Sync winget-pkgs fork',
+    'merge-upstream',
+    'branch = ''master''',
     'cargo binstall komac -y',
     'komac submit winget --yes',
     'GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}'
