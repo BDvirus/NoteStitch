@@ -18,6 +18,11 @@ $requiredWorkflowEntries = @(
     'NoteStitch-Setup.exe',
     'Get-FileHash',
     "NestedInstaller(Type|Files)|ArchiveBinariesDependOnPath",
+    'Verify WinGet token access',
+    'https://api.github.com/user',
+    'https://api.github.com/repos/BDvirus/winget-pkgs',
+    "permissions.push",
+    "x-oauth-scopes",
     'cargo binstall komac -y',
     'komac submit winget --yes',
     'GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}'
