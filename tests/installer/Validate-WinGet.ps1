@@ -90,6 +90,21 @@ foreach ($manifest in @($versionManifest, $localeManifest)) {
     }
 }
 
+$manifestVersions = @($installer, $versionManifest, $localeManifest) | ForEach-Object {
+    if ($_ -notmatch '(?m)^ManifestVersion:\s*(\S+)\s*$') {
+        throw 'Every WinGet manifest must declare ManifestVersion.'
+    }
+    $Matches[1]
+}
+
+if (($manifestVersions | Sort-Object -Unique).Count -ne 1) {
+    throw "Every file in the multi-file WinGet manifest must use the same ManifestVersion. Found: $($manifestVersions -join ', ')"
+}
+
+if ($manifestVersions[0] -ne '1.12.0') {
+    throw "WinGet manifests must use ManifestVersion 1.12.0 so Komac cannot create a mixed-version submission. Found: $($manifestVersions[0])"
+}
+
 if (-not $project.Contains('<Version>1.0.14</Version>')) {
     throw 'The application project version must be 1.0.14.'
 }

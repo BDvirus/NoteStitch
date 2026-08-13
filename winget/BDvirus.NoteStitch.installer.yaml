@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 # Seed/source-of-truth manifest. The per-release CI job (komac) bumps PackageVersion,
 # InstallerUrl, and recomputes InstallerSha256 before opening the winget-pkgs PR.
 PackageIdentifier: BDvirus.NoteStitch
@@ -16,4 +16,4 @@ Installers:
     # Placeholder — recomputed by komac at release time from the actual asset.
     InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
 ManifestType: installer
-ManifestVersion: 1.6.0
+ManifestVersion: 1.12.0
